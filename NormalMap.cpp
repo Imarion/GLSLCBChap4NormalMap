@@ -80,13 +80,16 @@ void MyWindow::initialize()
     initShaders();
     initMatrices();
 
+    PrepareTexture(GL_TEXTURE0, GL_TEXTURE_2D, "../Media/ogre_diffuse.png", true);
+    PrepareTexture(GL_TEXTURE1, GL_TEXTURE_2D, "../Media/ogre_normalmap.png", true);
+
     glFrontFace(GL_CCW);
     glEnable(GL_DEPTH_TEST);
 }
 
 void MyWindow::CreateVertexBuffer()
 {
-    mOgre = new VBOMesh("../media/bs_ears.obj");
+    mOgre = new VBOMesh("../media/bs_ears.obj", false, true, true);
 
     // Create and populate the buffer objects
     unsigned int handle[4];
@@ -188,11 +191,6 @@ void MyWindow::render()
         mProgram->setUniformValue("Light.Position", ViewMatrix * worldLight );
         mProgram->setUniformValue("Light.Intensity", 0.9f, 0.9f, 0.9f);
 
-        mProgram->setUniformValue("Material.Kd", 0.9f, 0.5f, 0.3f);
-        mProgram->setUniformValue("Material.Ka", 0.9f, 0.5f, 0.3f);
-        mProgram->setUniformValue("Material.Ks", 0.8f, 0.8f, 0.8f);
-        mProgram->setUniformValue("Material.Shininess", 100.0f);
-
         QMatrix4x4 mv1 = ViewMatrix * ModelMatrix;
         mProgram->setUniformValue("ModelViewMatrix", mv1);
         mProgram->setUniformValue("NormalMatrix", mv1.normalMatrix());
@@ -235,18 +233,22 @@ void MyWindow::initShaders()
     qDebug() << "shader link: " << mProgram->link();
 }
 
-void MyWindow::PrepareTexture(GLenum TextureTarget, const QString& FileName, GLuint& TexObject, bool flip)
+void MyWindow::PrepareTexture(GLenum TextureUnit, GLenum TextureTarget, const QString& FileName, bool flip)
 {
     QImage TexImg;
 
-    if (!TexImg.load(FileName)) qDebug() << "Erreur chargement texture";
+    if (!TexImg.load(FileName)) qDebug() << "Erreur chargement texture " << FileName;
     if (flip==true) TexImg=TexImg.mirrored();
 
+    glActiveTexture(TextureUnit);
+    GLuint TexObject;
     glGenTextures(1, &TexObject);
     glBindTexture(TextureTarget, TexObject);
-    glTexImage2D(TextureTarget, 0, GL_RGB, TexImg.width(), TexImg.height(), 0, GL_BGRA, GL_UNSIGNED_BYTE, TexImg.bits());
-    glTexParameterf(TextureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameterf(TextureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    mFuncs->glTexStorage2D(TextureTarget, 1, GL_RGBA8, TexImg.width(), TexImg.height());
+    mFuncs->glTexSubImage2D(TextureTarget, 0, 0, 0, TexImg.width(), TexImg.height(), GL_BGRA, GL_UNSIGNED_BYTE, TexImg.bits());
+    //glTexImage2D(TextureTarget, 0, GL_RGB, TexImg.width(), TexImg.height(), 0, GL_BGRA, GL_UNSIGNED_BYTE, TexImg.bits());
+    glTexParameteri(TextureTarget, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(TextureTarget, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
 void MyWindow::keyPressEvent(QKeyEvent *keyEvent)
