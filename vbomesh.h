@@ -66,6 +66,7 @@ public:
     float *gettc();
     unsigned int *getelems();
     unsigned int  getnFaces();
+    float *gettang();
 };
 
 #endif // VBOMESH_H

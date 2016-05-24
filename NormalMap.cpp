@@ -20,7 +20,7 @@ MyWindow::~MyWindow()
 }
 
 MyWindow::MyWindow()
-    : mProgram(0), currentTimeMs(0), currentTimeS(0), angle(100), tPrev(0), rotSpeed(M_PI / 8.0f)
+    : mProgram(0), currentTimeMs(0), currentTimeS(0), angle(1.74533f), tPrev(0.0f), rotSpeed(M_PI / 8.0f)
 {
     setSurfaceType(QWindow::OpenGLSurface);
     setFlags(Qt::Window | Qt::WindowSystemMenuHint | Qt::WindowTitleHint | Qt::WindowMinMaxButtonsHint | Qt::WindowCloseButtonHint);
@@ -92,8 +92,8 @@ void MyWindow::CreateVertexBuffer()
     mOgre = new VBOMesh("../media/bs_ears.obj", false, true, true);
 
     // Create and populate the buffer objects
-    unsigned int handle[4];
-    glGenBuffers(4, handle);
+    unsigned int handle[5];
+    glGenBuffers(5, handle);
 
     glBindBuffer(GL_ARRAY_BUFFER, handle[0]);
     glBufferData(GL_ARRAY_BUFFER, (3 * mOgre->getnVerts()) * sizeof(float), mOgre->getv(), GL_STATIC_DRAW);
@@ -104,7 +104,10 @@ void MyWindow::CreateVertexBuffer()
     glBindBuffer(GL_ARRAY_BUFFER, handle[2]);
     glBufferData(GL_ARRAY_BUFFER, (2 * mOgre->getnVerts()) * sizeof(float), mOgre->gettc(), GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, handle[3]);
+    glBindBuffer(GL_ARRAY_BUFFER, handle[3]);
+    glBufferData(GL_ARRAY_BUFFER, (4 * mOgre->getnVerts()) * sizeof(float), mOgre->gettang(), GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, handle[4]);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, 3 * mOgre->getnFaces() * sizeof(unsigned int), mOgre->getelems(), GL_STATIC_DRAW);
 
     // Setup the VAO
@@ -123,8 +126,13 @@ void MyWindow::CreateVertexBuffer()
     mFuncs->glVertexAttribFormat(2, 2, GL_FLOAT, GL_FALSE, 0);
     mFuncs->glVertexAttribBinding(2, 2);
 
+    // Vertex tangents
+    mFuncs->glBindVertexBuffer(3, handle[3], 0, sizeof(GLfloat) * 4);
+    mFuncs->glVertexAttribFormat(3, 4, GL_FLOAT, GL_FALSE, 0);
+    mFuncs->glVertexAttribBinding(3, 3);
+
     // Indices
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, handle[3]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, handle[4]);
 
     mFuncs->glBindVertexArray(0);
 }
@@ -184,12 +192,18 @@ void MyWindow::render()
     glEnableVertexAttribArray(0);
     glEnableVertexAttribArray(1);
     glEnableVertexAttribArray(2);
+    glEnableVertexAttribArray(3);
 
     mProgram->bind();
     {
         QVector4D worldLight = QVector4D(10.0f * cos(angle),1.0f,10.0f * sin(angle),1.0f);
         mProgram->setUniformValue("Light.Position", ViewMatrix * worldLight );
         mProgram->setUniformValue("Light.Intensity", 0.9f, 0.9f, 0.9f);
+
+        mProgram->setUniformValue("Material.Kd", 0.9f, 0.9f, 0.9f);
+        mProgram->setUniformValue("Material.Ks", 0.2f, 0.2f, 0.2f);
+        mProgram->setUniformValue("Material.Ka", 0.1f, 0.1f, 0.1f);
+        mProgram->setUniformValue("Material.Shininess", 1.0f);
 
         QMatrix4x4 mv1 = ViewMatrix * ModelMatrix;
         mProgram->setUniformValue("ModelViewMatrix", mv1);
@@ -201,6 +215,7 @@ void MyWindow::render()
         glDisableVertexAttribArray(0);
         glDisableVertexAttribArray(1);
         glDisableVertexAttribArray(2);
+        glDisableVertexAttribArray(3);
     }
     mProgram->release();
 

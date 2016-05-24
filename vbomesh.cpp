@@ -364,4 +364,7 @@ unsigned int VBOMesh::getnFaces()
     return nFaces;
 }
 
-
+float *VBOMesh::gettang()
+{
+    return tang;
+}
